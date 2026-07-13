@@ -63,6 +63,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from text_io import (
+    ensure_text_is_not_garbled,
+    read_json_path,
+    read_json_stdin,
+    write_stdout_utf8,
+    write_utf8,
+)
+
 
 A_SHARE_SECTORS_HINT = {
     "医药": ["医药", "生物", "制药", "鲁抗", "白云山", "恒瑞"],
@@ -222,10 +230,8 @@ def pack(
 
 def _load_json_from_arg(arg: str | None, stdin_label: str) -> Any:
     if arg is None or arg == "-":
-        data = sys.stdin.read()
-    else:
-        data = Path(arg).read_text(encoding="utf-8-sig")
-    return json.loads(data)
+        return read_json_stdin(stdin_label)
+    return read_json_path(arg, stdin_label)
 
 
 def main() -> int:
@@ -242,16 +248,20 @@ def main() -> int:
         args.analysis = "-"
 
     analysis_payload = _load_json_from_arg(args.analysis, "analysis")
+    ensure_text_is_not_garbled(analysis_payload, "analysis.json")
     if not isinstance(analysis_payload, list):
         print("错误: a-stock-analysis --json 输出应当是数组", file=sys.stderr)
         return 2
 
     annotations_doc = _load_json_from_arg(args.annotations, "annotations")
+    ensure_text_is_not_garbled(annotations_doc, "annotations.json")
     if not isinstance(annotations_doc, dict):
         print("错误: annotations 应当是 {股票代码: {...}} 形式", file=sys.stderr)
         return 2
 
     profile_doc = _load_json_from_arg(args.profile, "profile") if args.profile else None
+    if profile_doc is not None:
+        ensure_text_is_not_garbled(profile_doc, "profile.json")
     if profile_doc is not None and not isinstance(profile_doc, dict):
         print("错误: profile 应当是 user_profile 对象", file=sys.stderr)
         return 2
@@ -259,9 +269,9 @@ def main() -> int:
     packed = pack(analysis_payload, annotations_doc, title=args.title, user_profile=profile_doc)
     out = json.dumps(packed, ensure_ascii=False, indent=2)
     if args.output == "-":
-        sys.stdout.write(out)
+        write_stdout_utf8(out)
     else:
-        Path(args.output).write_text(out, encoding="utf-8-sig")
+        write_utf8(args.output, out)
         print(f"已写入: {args.output} ({len(packed['stocks'])} 只股票)", file=sys.stderr)
     return 0
 

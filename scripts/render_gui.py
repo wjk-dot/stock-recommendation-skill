@@ -28,6 +28,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from text_io import ensure_text_is_not_garbled, read_json_path, read_json_stdin, write_utf8
+
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_PATH = SKILL_ROOT / "templates" / "dashboard.html"
@@ -114,6 +116,7 @@ def _normalize_stock(s: dict[str, Any]) -> dict[str, Any]:
 
 
 def render(input_json: dict[str, Any], template_html: str) -> str:
+    ensure_text_is_not_garbled(input_json, "推荐 JSON")
     if "stocks" not in input_json or not isinstance(input_json["stocks"], list):
         raise ValueError("输入 JSON 缺少 stocks 数组")
 
@@ -145,16 +148,16 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.input == "-":
-        data = json.loads(sys.stdin.read())
+        data = read_json_stdin("推荐 JSON")
     else:
-        data = json.loads(Path(args.input).read_text(encoding="utf-8-sig"))
+        data = read_json_path(args.input, "推荐 JSON")
 
     template = Path(args.template).read_text(encoding="utf-8-sig")
 
     html = render(data, template)
 
     out_path = Path(args.output).resolve()
-    out_path.write_text(html, encoding="utf-8-sig")
+    write_utf8(out_path, html)
     print(f"GUI 已生成: {out_path}", file=sys.stderr)
     print(f"打开方式: 在资源管理器双击，或 file:///{out_path.as_posix().lstrip('/')}", file=sys.stderr)
     return 0

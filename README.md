@@ -165,6 +165,10 @@ python scripts\render_gui.py examples\sample_input.json --output dashboard.html
 然后使用打包脚本：
 
 ```powershell
+python scripts\capture_analysis.py 000001 600000 --minute `
+  --upstream "C:\path\to\a-stock-analysis\scripts\analyze.py" `
+  --output analysis.json
+
 python scripts\pack_recommendations.py `
   --analysis analysis.json `
   --annotations annotations.json `
