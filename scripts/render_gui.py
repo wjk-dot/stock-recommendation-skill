@@ -40,6 +40,35 @@ DEFAULT_META = {
     "market_status": "closed",
 }
 
+DEFAULT_PROFILE = {
+    "capital_cny": 100000,
+    "only_recommendations": False,
+    "fees": {
+        "commission_rate": 0.0003,
+        "min_commission_cny": 5,
+        "stamp_duty_rate": 0.0005,
+        "transfer_rate": 0.00001,
+    },
+    "markets": ["sh_main", "sz_main"],
+    "horizon": "swing",
+    "risk_level": "balanced",
+    "confirmed": False,
+}
+
+
+def _coerce_profile(profile: dict[str, Any] | None) -> dict[str, Any]:
+    out = dict(DEFAULT_PROFILE)
+    out["fees"] = dict(DEFAULT_PROFILE["fees"])
+    if profile:
+        for key in ("capital_cny", "only_recommendations", "markets", "horizon", "risk_level", "confirmed"):
+            if key in profile and profile[key] is not None:
+                out[key] = profile[key]
+        if isinstance(profile.get("fees"), dict):
+            for key in out["fees"]:
+                if profile["fees"].get(key) is not None:
+                    out["fees"][key] = profile["fees"][key]
+    return out
+
 
 def _coerce_meta(meta: dict[str, Any] | None) -> dict[str, Any]:
     out = dict(DEFAULT_META)
@@ -89,11 +118,13 @@ def render(input_json: dict[str, Any], template_html: str) -> str:
         raise ValueError("输入 JSON 缺少 stocks 数组")
 
     meta = _coerce_meta(input_json.get("meta"))
+    user_profile = _coerce_profile(input_json.get("user_profile"))
     stocks = [_normalize_stock(s) for s in input_json["stocks"]]
     market_overview = input_json.get("market_overview") or {}
 
     payload = {
         "meta": meta,
+        "user_profile": user_profile,
         "stocks": stocks,
         "market_overview": market_overview,
     }

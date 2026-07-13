@@ -81,6 +81,13 @@ a{color:var(--blue);text-decoration:none}
 .oc-up{color:var(--red)}
 .oc-down{color:var(--green)}
 
+/* ═══ Personalization strip ═══ */
+.profile-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:var(--radius)}
+.profile-title{font-size:11px;color:var(--blue);font-weight:700;white-space:nowrap}
+.profile-item{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:var(--bg-raised);border-radius:4px;font-size:11px;color:var(--text-dim)}
+.profile-item strong{color:var(--text);font-weight:600}
+.profile-note{font-size:11px;color:var(--text-faint);margin-left:auto}
+
 /* ═══ Filter bar ═══ */
 .filter-bar{display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:6px}
@@ -304,6 +311,7 @@ a{color:var(--blue);text-decoration:none}
   <!-- Tab 1: 推荐展示 -->
   <section class="tabpanel active" id="panel-recommend">
     <div class="overview-strip" id="overview-strip"></div>
+    <div class="profile-strip" id="profile-strip"></div>
     <div class="filter-bar">
       <div class="filter-group">
         <label class="filter-label">推荐类型</label>
@@ -467,6 +475,10 @@ const RAW = JSON.parse(document.getElementById("stock-data").textContent);
 const STOCKS = RAW.stocks || [];
 const META = RAW.meta || {};
 const OVERVIEW = RAW.market_overview || {};
+const PROFILE = RAW.user_profile || {};
+const PROFILE_MARKET_LABELS={sh_main:"沪市主板",sz_main:"深市主板",chinext:"创业板",star:"科创板",beijing:"北交所"};
+const PROFILE_HORIZON_LABELS={short:"短线（1-5 个交易日）",swing:"波段（几周）",long:"长线（数月以上）"};
+const PROFILE_RISK_LABELS={conservative:"稳健",balanced:"均衡",aggressive:"激进"};
 
 // ── Helpers ──
 const $ = (s,p) => (p||document).querySelector(s);
@@ -486,6 +498,15 @@ function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 function removeStored(k){try{localStorage.removeItem(k);}catch{}}
 
 const DEFAULT_FEES={commissionRate:.0003,minCommission:5,stampDutyRate:.0005,transferRate:.00001};
+function profileFees(){
+  const f=PROFILE.fees||{};
+  return {
+    commissionRate:f.commission_rate,
+    minCommission:f.min_commission_cny,
+    stampDutyRate:f.stamp_duty_rate,
+    transferRate:f.transfer_rate
+  };
+}
 function normalizeFees(value){
   const v=value&&typeof value==="object"?value:{};
   return {
@@ -495,12 +516,25 @@ function normalizeFees(value){
     transferRate:Number.isFinite(Number(v.transferRate))&&Number(v.transferRate)>=0?Number(v.transferRate):DEFAULT_FEES.transferRate
   };
 }
+const PROFILE_FEES=normalizeFees(profileFees());
+const profileSignature=JSON.stringify({
+  capital:PROFILE.capital_cny,
+  onlyRecommendations:PROFILE.only_recommendations,
+  fees:PROFILE_FEES,
+  markets:PROFILE.markets||[],
+  horizon:PROFILE.horizon,
+  riskLevel:PROFILE.risk_level
+});
 
-let positions = load("stockRecGui.positions",()=>[]);
+const savedProfileSignature=load("stockRecGui.profileSignature",()=>null);
+const profileChanged=savedProfileSignature!==profileSignature;
+let positions = profileChanged?[]:load("stockRecGui.positions",()=>[]);
 let predictions = load("stockRecGui.predictions",()=>[]);
-let capital = load("stockRecGui.capital",()=>100000);
-let fees = normalizeFees(load("stockRecGui.fees",()=>DEFAULT_FEES));
-let totalFeesPaid = load("stockRecGui.totalFeesPaid",()=>null);
+const profileCapital=Number(PROFILE.capital_cny);
+const profileDefaultCapital=Number.isFinite(profileCapital)&&profileCapital>0?profileCapital:100000;
+let capital = profileChanged?profileDefaultCapital:load("stockRecGui.capital",()=>profileDefaultCapital);
+let fees = profileChanged?PROFILE_FEES:normalizeFees(load("stockRecGui.fees",()=>PROFILE_FEES));
+let totalFeesPaid = profileChanged?0:load("stockRecGui.totalFeesPaid",()=>null);
 
 // Migrate first-generation positions without losing saved holdings.
 positions=positions.map(p=>{
@@ -516,7 +550,7 @@ positions=positions.map(p=>{
 if(totalFeesPaid===null||!Number.isFinite(Number(totalFeesPaid))) totalFeesPaid=positions.reduce((sum,p)=>sum+p.buyFees,0);
 totalFeesPaid=Number(totalFeesPaid);
 
-let cash = load("stockRecGui.cash",()=>null);
+let cash = profileChanged?capital:load("stockRecGui.cash",()=>null);
 if(cash===null||!Number.isFinite(Number(cash))) cash=Math.max(0,Number(capital)-positions.reduce((sum,p)=>sum+p.totalCost,0));
 cash=Number(cash);
 
@@ -525,9 +559,10 @@ if(positions.length>0){
   const codes=new Set(STOCKS.map(s=>s.code));
   if(positions.some(p=>!codes.has(p.code))){
     ["stockRecGui.positions","stockRecGui.capital","stockRecGui.cash","stockRecGui.totalFeesPaid"].forEach(removeStored);
-    positions=[];capital=100000;cash=capital;totalFeesPaid=0;
+    positions=[];capital=profileDefaultCapital;cash=capital;totalFeesPaid=0;
   }
 }
+save("stockRecGui.profileSignature",profileSignature);
 
 // ── Toast ──
 function toast(msg,type="info"){const h=$("#toast-host");const e=document.createElement("div");e.className="toast "+type;e.textContent=msg;h.appendChild(e);setTimeout(()=>{e.classList.add("fade-out");setTimeout(()=>e.remove(),300);},2400);}
@@ -559,6 +594,25 @@ $$(".tab").forEach(b=>b.addEventListener("click",()=>{const t=b.dataset.tab;$$("
 // ═══════════════════════════════════════════
 // TAB 1: 推荐展示
 // ═══════════════════════════════════════════
+
+function renderProfileStrip(){
+  const strip=$("#profile-strip");
+  if(!strip) return;
+  const markets=(PROFILE.markets||[]).map(k=>PROFILE_MARKET_LABELS[k]||k).join("、")||"沪深主板";
+  const horizon=PROFILE_HORIZON_LABELS[PROFILE.horizon]||"波段（几周）";
+  const risk=PROFILE_RISK_LABELS[PROFILE.risk_level]||"均衡";
+  const capital=Number(PROFILE.capital_cny);
+  const capitalText=PROFILE.only_recommendations?"只看推荐（模拟区为演示资金）":(Number.isFinite(capital)&&capital>0?fmtCNY2(capital):"演示资金");
+  const feeRate=(PROFILE_FEES.commissionRate*100).toFixed(3).replace(/\.?0+$/g,"");
+  const feeText=`佣金 ${feeRate}% · 最低 ${fmtCNY2(PROFILE_FEES.minCommission)}`;
+  strip.innerHTML=`<span class="profile-title">本次个性化边界</span>
+    <span class="profile-item">资金 <strong>${capitalText}</strong></span>
+    <span class="profile-item">费率 <strong>${feeText}</strong></span>
+    <span class="profile-item">范围 <strong>${esc(markets)}</strong></span>
+    <span class="profile-item">周期 <strong>${esc(horizon)}</strong></span>
+    <span class="profile-item">风险 <strong>${esc(risk)}</strong></span>
+    <span class="profile-note">行情与理由均来自 a-stock-analysis 当日数据</span>`;
+}
 
 // Overview strip
 (function(){
@@ -800,7 +854,7 @@ $$("input[name='price-mode']").forEach(r=>r.addEventListener("change",updateTrad
   $(id).addEventListener("change",()=>{syncFeesFromInputs();renderFeeInputs();});
 });
 $("#btn-reset-fees").addEventListener("click",()=>{
-  fees={...DEFAULT_FEES};save("stockRecGui.fees",fees);
+  fees={...PROFILE_FEES};save("stockRecGui.fees",fees);
   renderFeeInputs();renderPositions();updateTradeSummary();toast("交易费用已恢复默认值","info");
 });
 
@@ -847,7 +901,7 @@ $("#input-capital").addEventListener("change",()=>{
 $("#btn-reset-account").addEventListener("click",()=>{
   if(!confirm("确定要清空所有持仓和费用记录并重置账户吗？")) return;
   const requested=parseFloat($("#input-capital").value);
-  capital=requested>0?roundMoney(requested):100000;cash=capital;positions=[];totalFeesPaid=0;
+  capital=requested>0?roundMoney(requested):profileDefaultCapital;cash=capital;positions=[];totalFeesPaid=0;
   saveTradingAccount();renderPositions();updateTradeSummary();toast(`账户已按 ${fmtCNY2(capital)} 重置`,"info");
 });
 
@@ -1059,6 +1113,7 @@ $("#btn-clear-pred").addEventListener("click",()=>{
 // INIT
 // ═══════════════════════════════════════════
 renderFeeInputs();
+renderProfileStrip();
 renderStockGrid();
 renderPositions();
 renderPredictGrid();

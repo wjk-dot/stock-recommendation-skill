@@ -7,10 +7,36 @@
 ```json
 {
   "meta": { ... },
+  "user_profile": { ... },
   "stocks": [ ... ],
   "market_overview": { ... }   // 可选
 }
 ```
+
+## user_profile（个性化问答结果）
+
+该对象来自荐股开始前的简短问答。它不是行情数据，但必须随推荐结果传给 GUI，用来初始化模拟盘并展示本次筛选边界。
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `capital_cny` | number | 否 | 可用于本次模拟的资金；`only_recommendations` 为 true 时可使用演示资金 |
+| `only_recommendations` | boolean | 否 | true 表示用户只看推荐，不打算立即模拟买入 |
+| `fees` | object | 否 | 费率对象，字段见下表；缺失时使用 GUI 默认值 |
+| `markets` | string[] | 否 | `sh_main`、`sz_main`、`chinext`、`star`、`beijing` |
+| `horizon` | string | 否 | `short`、`swing`、`long` |
+| `risk_level` | string | 否 | `conservative`、`balanced`、`aggressive` |
+| `confirmed` | boolean | 否 | 是否已向用户复述并确认 |
+
+### user_profile.fees
+
+费率均使用小数表示：佣金万三为 `0.0003`，印花税 0.05% 为 `0.0005`。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `commission_rate` | number | 买卖双向佣金费率 |
+| `min_commission_cny` | number | 单笔最低佣金 |
+| `stamp_duty_rate` | number | 仅卖出印花税 |
+| `transfer_rate` | number | 买卖双向过户费 |
 
 ## meta（元信息）
 

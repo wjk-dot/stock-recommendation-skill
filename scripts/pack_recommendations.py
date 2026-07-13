@@ -36,6 +36,22 @@ annotations.json 的结构（Codex 写）：
 }
 
 未在 annotations 里出现的股票，GUI 会用中性标签（watch）渲染，仍展示行情但不写推荐理由。
+
+profile.json 的结构（荐股前问答标准化结果）：
+{
+  "capital_cny": 1000,
+  "only_recommendations": false,
+  "fees": {
+    "commission_rate": 0.0003,
+    "min_commission_cny": 5,
+    "stamp_duty_rate": 0.0005,
+    "transfer_rate": 0.00001
+  },
+  "markets": ["sh_main", "sz_main"],
+  "horizon": "short",
+  "risk_level": "balanced",
+  "confirmed": true
+}
 """
 
 from __future__ import annotations
@@ -148,7 +164,42 @@ def _infer_market_status() -> str:
     return "closed"
 
 
-def pack(analysis_payload: list[dict[str, Any]], annotations: dict[str, Any], title: str | None = None) -> dict[str, Any]:
+DEFAULT_PROFILE = {
+    "capital_cny": 100000,
+    "only_recommendations": False,
+    "fees": {
+        "commission_rate": 0.0003,
+        "min_commission_cny": 5,
+        "stamp_duty_rate": 0.0005,
+        "transfer_rate": 0.00001,
+    },
+    "markets": ["sh_main", "sz_main"],
+    "horizon": "swing",
+    "risk_level": "balanced",
+    "confirmed": False,
+}
+
+
+def _normalize_profile(profile: dict[str, Any] | None) -> dict[str, Any]:
+    out = json.loads(json.dumps(DEFAULT_PROFILE))
+    if not profile:
+        return out
+    for key in ("capital_cny", "only_recommendations", "markets", "horizon", "risk_level", "confirmed"):
+        if key in profile and profile[key] is not None:
+            out[key] = profile[key]
+    if isinstance(profile.get("fees"), dict):
+        for key in out["fees"]:
+            if profile["fees"].get(key) is not None:
+                out["fees"][key] = profile["fees"][key]
+    return out
+
+
+def pack(
+    analysis_payload: list[dict[str, Any]],
+    annotations: dict[str, Any],
+    title: str | None = None,
+    user_profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     stocks: list[dict[str, Any]] = []
     for raw in analysis_payload:
         if "error" in raw:
@@ -164,6 +215,7 @@ def pack(analysis_payload: list[dict[str, Any]], annotations: dict[str, Any], ti
             "analyst": "Codex",
             "market_status": _infer_market_status(),
         },
+        "user_profile": _normalize_profile(user_profile),
         "stocks": stocks,
     }
 
@@ -182,6 +234,7 @@ def main() -> int:
     parser.add_argument("--annotations", "-n", required=True, help="Codex 标注 JSON 文件")
     parser.add_argument("--output", "-o", default="-", help="输出文件，- 表示 stdout")
     parser.add_argument("--title", "-t", default=None, help="覆盖默认页面标题")
+    parser.add_argument("--profile", "-p", default=None, help="荐股前问答生成的 user_profile JSON 文件")
     args = parser.parse_args()
 
     if not args.analysis:
@@ -198,7 +251,12 @@ def main() -> int:
         print("错误: annotations 应当是 {股票代码: {...}} 形式", file=sys.stderr)
         return 2
 
-    packed = pack(analysis_payload, annotations_doc, title=args.title)
+    profile_doc = _load_json_from_arg(args.profile, "profile") if args.profile else None
+    if profile_doc is not None and not isinstance(profile_doc, dict):
+        print("错误: profile 应当是 user_profile 对象", file=sys.stderr)
+        return 2
+
+    packed = pack(analysis_payload, annotations_doc, title=args.title, user_profile=profile_doc)
     out = json.dumps(packed, ensure_ascii=False, indent=2)
     if args.output == "-":
         sys.stdout.write(out)

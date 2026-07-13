@@ -6,6 +6,20 @@
     "analyst": "Codex (GPT-5)",
     "market_status": "closed"
   },
+  "user_profile": {
+    "capital_cny": 1000,
+    "only_recommendations": false,
+    "fees": {
+      "commission_rate": 0.0003,
+      "min_commission_cny": 5,
+      "stamp_duty_rate": 0.0005,
+      "transfer_rate": 0.00001
+    },
+    "markets": ["sh_main", "sz_main"],
+    "horizon": "short",
+    "risk_level": "balanced",
+    "confirmed": true
+  },
   "market_overview": {
     "sh_index": { "price": 3356.12, "change_pct": 0.85 },
     "sz_index": { "price": 10845.30, "change_pct": 1.22 },
