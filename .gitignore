@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+_analysis.json
+_annotations.json
+_recommendations.json
+_recs.json
+_raw.txt
+_build.py
+_fetch.py
+
+# Generated HTML output (rebuilt on demand)
+dashboard.html
+examples/sample_output.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Excel temp
+~$*.xls*
+~$*.docx*

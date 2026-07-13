@@ -1,0 +1,157 @@
+{
+  "meta": {
+    "title": "Codex 量化推荐日报",
+    "subtitle": "2026-07-13 收盘复盘 · 主力资金跟踪",
+    "generated_at": "2026-07-13T15:05:00",
+    "analyst": "Codex (GPT-5)",
+    "market_status": "closed"
+  },
+  "market_overview": {
+    "sh_index": { "price": 3356.12, "change_pct": 0.85 },
+    "sz_index": { "price": 10845.30, "change_pct": 1.22 },
+    "cyb_index": { "price": 2156.88, "change_pct": 2.05 }
+  },
+  "stocks": [
+    {
+      "code": "600789",
+      "name": "鲁抗医药",
+      "price": 10.32,
+      "open": 10.20,
+      "pre_close": 10.23,
+      "high": 10.77,
+      "low": 9.82,
+      "volume_lots": 2181838,
+      "amount_cny": 2251053000.0,
+      "change_pct": 0.88,
+      "change_amt": 0.09,
+      "recommendation": "strong_buy",
+      "confidence": 0.88,
+      "sector": "医药",
+      "reasons": [
+        "早盘 30 分钟主力抢筹明显，成交量占比 41.6%，早盘快速拉升封板",
+        "分时图全天围绕均价线波动，未见明显出货痕迹",
+        "换手率适中，筹码稳定性好",
+        "近 3 日资金持续净流入，今日放量突破前高"
+      ],
+      "risk_factors": [
+        "尾盘放量 10.3%，有一定获利盘涌出",
+        "板块轮动较快，次日需关注集合竞价量能"
+      ],
+      "volume_distribution": {
+        "open_30min": 41.6,
+        "mid_am": 39.7,
+        "mid_pm": 8.3,
+        "close_30min": 10.3
+      }
+    },
+    {
+      "code": "002446",
+      "name": "盛路通信",
+      "price": 8.56,
+      "open": 8.38,
+      "pre_close": 8.42,
+      "high": 8.89,
+      "low": 8.20,
+      "volume_lots": 1562000,
+      "amount_cny": 1337192000.0,
+      "change_pct": 1.66,
+      "change_amt": 0.14,
+      "recommendation": "buy",
+      "confidence": 0.72,
+      "sector": "国防军工",
+      "reasons": [
+        "全天沿均价线稳步上行，午后量价齐升",
+        "尾盘 14:45 出现脉冲放量，疑似机构扫货",
+        "技术面 MACD 金叉，5 日线向上穿越 20 日线"
+      ],
+      "risk_factors": [
+        "上方 9.05 压力位较明显，突破需量能配合"
+      ],
+      "volume_distribution": {
+        "open_30min": 25.3,
+        "mid_am": 32.1,
+        "mid_pm": 18.7,
+        "close_30min": 23.9
+      }
+    },
+    {
+      "code": "300750",
+      "name": "宁德时代",
+      "price": 210.50,
+      "open": 208.10,
+      "pre_close": 212.30,
+      "high": 215.80,
+      "low": 206.50,
+      "volume_lots": 892000,
+      "amount_cny": 18776600000.0,
+      "change_pct": -0.85,
+      "change_amt": -1.80,
+      "recommendation": "watch",
+      "confidence": 0.45,
+      "sector": "新能源",
+      "reasons": [
+        "受隔夜美股新能源板块回调影响低开",
+        "盘中触及 206.50 后快速反弹，下方支撑较强",
+        "成交量萎缩，短期多空博弈焦灼"
+      ],
+      "risk_factors": [
+        "纳指期货走弱可能带动 A 股新能源板块继续承压",
+        "需等待板块企稳信号再行入场"
+      ]
+    },
+    {
+      "code": "600519",
+      "name": "贵州茅台",
+      "price": 1682.00,
+      "open": 1680.00,
+      "pre_close": 1690.50,
+      "high": 1695.00,
+      "low": 1668.80,
+      "volume_lots": 342000,
+      "amount_cny": 57524400000.0,
+      "change_pct": -0.50,
+      "change_amt": -8.50,
+      "recommendation": "caution",
+      "confidence": 0.35,
+      "sector": "白酒",
+      "reasons": [
+        "白酒板块整体偏弱，茅台上行动能不足",
+        "股息率回落，长期投资者持观望态度"
+      ],
+      "risk_factors": [
+        "消费税改革预期可能压估值"
+      ]
+    },
+    {
+      "code": "002342",
+      "name": "巨力索具",
+      "price": 4.32,
+      "open": 4.50,
+      "pre_close": 4.60,
+      "high": 4.55,
+      "low": 4.28,
+      "volume_lots": 426000,
+      "amount_cny": 184032000.0,
+      "change_pct": -6.09,
+      "change_amt": -0.28,
+      "recommendation": "avoid",
+      "confidence": 0.18,
+      "sector": "专用设备",
+      "reasons": [
+        "全天单边下跌，早盘跳空低开后无明显抵抗",
+        "成交量放大但价格持续走弱，典型主力出货形态",
+        "盘口卖一卖二压单明显，抛压沉重"
+      ],
+      "risk_factors": [
+        "短线资金大幅流出，不宜抄底",
+        "若次日继续放量破 4.20 支撑，止损盘将集中涌出"
+      ],
+      "volume_distribution": {
+        "open_30min": 48.2,
+        "mid_am": 28.5,
+        "mid_pm": 12.1,
+        "close_30min": 11.2
+      }
+    }
+  ]
+}
