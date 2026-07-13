@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -169,9 +169,28 @@ a{color:var(--blue);text-decoration:none}
 .chip-sm{padding:2px 8px;font-size:11px}
 .hidden{display:none!important}
 
+.fee-settings{border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input)}
+.fee-settings summary{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;font-size:12px;font-weight:600;list-style:none}
+.fee-settings summary::-webkit-details-marker{display:none}
+.fee-settings summary::before{content:"+";color:var(--text-dim);font-family:var(--font-mono);font-size:13px}
+.fee-settings[open] summary::before{content:"-"}
+.fee-summary-hint{margin-left:auto;color:var(--text-dim);font-size:11px;font-weight:400}
+.fee-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;padding:0 12px 12px}
+.fee-field{display:flex;flex-direction:column;gap:5px}
+.fee-field label{font-size:11px;color:var(--text-dim)}
+.fee-input-wrap{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden}
+.fee-input-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px rgba(92,156,230,.15)}
+.fee-input-wrap .input{width:100%;border:0;box-shadow:none;background:transparent}
+.fee-input-wrap .input:focus{box-shadow:none}
+.fee-suffix{padding-right:9px;color:var(--text-dim);font-size:11px}
+.fee-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)}
+.fee-footer .btn{flex-shrink:0}
+
 .form-summary{padding:12px;background:var(--bg-raised);border-radius:var(--radius)}
 .summary-line{display:flex;justify-content:space-between;padding:2px 0;font-size:12px;color:var(--text-dim)}
 .summary-line .mono{color:var(--text);font-weight:600}
+.summary-line.total{margin-top:5px;padding-top:7px;border-top:1px solid var(--border);color:var(--text)}
+.summary-line.total .mono{font-size:13px}
 .form-actions{padding-top:4px}
 
 /* Buttons */
@@ -243,8 +262,11 @@ a{color:var(--blue);text-decoration:none}
   .account-summary{flex-direction:column}
   .overview-strip{flex-direction:column}
   .predict-grid{grid-template-columns:1fr}
+  .fee-grid{grid-template-columns:1fr 1fr}
+  .fee-summary-hint{display:none}
   .content{padding:14px 12px}
 }
+@media(max-width:480px){.fee-grid{grid-template-columns:1fr}.fee-footer{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
@@ -317,9 +339,10 @@ a{color:var(--blue);text-decoration:none}
     <div class="account-summary">
       <div class="summary-card"><div class="summary-label">初始资金</div><div class="summary-value mono" id="acc-initial">0</div></div>
       <div class="summary-card"><div class="summary-label">可用资金</div><div class="summary-value mono" id="acc-cash">0</div></div>
-      <div class="summary-card"><div class="summary-label">持仓市值</div><div class="summary-value mono" id="acc-market">0</div></div>
+      <div class="summary-card"><div class="summary-label">持仓可变现</div><div class="summary-value mono" id="acc-market">0</div></div>
       <div class="summary-card highlight"><div class="summary-label">总资产</div><div class="summary-value mono" id="acc-total">0</div></div>
       <div class="summary-card highlight"><div class="summary-label">浮动盈亏</div><div class="summary-value mono" id="acc-pnl">0</div><div class="summary-sub mono" id="acc-pnl-pct">0.00%</div></div>
+      <div class="summary-card"><div class="summary-label">累计已付费用</div><div class="summary-value mono" id="acc-fees">0</div></div>
     </div>
     <div class="trade-panel">
       <div class="panel-header"><h3>新建交易</h3></div>
@@ -353,10 +376,38 @@ a{color:var(--blue);text-decoration:none}
             <button class="chip chip-sm" data-pct="100">满仓</button>
           </div>
         </div>
+        <details class="fee-settings" open>
+          <summary><span>交易费用设置</span><span class="fee-summary-hint" id="fee-summary-hint">佣金万三 · 最低 5 元 · 印花税卖出单边</span></summary>
+          <div class="fee-grid">
+            <div class="fee-field">
+              <label for="fee-commission">佣金费率（双向）</label>
+              <div class="fee-input-wrap"><input type="number" class="input mono" id="fee-commission" min="0" step="0.001"><span class="fee-suffix">%</span></div>
+            </div>
+            <div class="fee-field">
+              <label for="fee-min-commission">单笔最低佣金</label>
+              <div class="fee-input-wrap"><input type="number" class="input mono" id="fee-min-commission" min="0" step="0.01"><span class="fee-suffix">元</span></div>
+            </div>
+            <div class="fee-field">
+              <label for="fee-stamp-duty">印花税（仅卖出）</label>
+              <div class="fee-input-wrap"><input type="number" class="input mono" id="fee-stamp-duty" min="0" step="0.001"><span class="fee-suffix">%</span></div>
+            </div>
+            <div class="fee-field">
+              <label for="fee-transfer">过户费（双向）</label>
+              <div class="fee-input-wrap"><input type="number" class="input mono" id="fee-transfer" min="0" step="0.0001"><span class="fee-suffix">%</span></div>
+            </div>
+          </div>
+          <div class="fee-footer">
+            <span>默认按佣金 0.03%、最低 5 元，印花税 0.05%、过户费 0.001% 估算；实际费用以开户券商为准。</span>
+            <button class="btn btn-ghost btn-sm" type="button" id="btn-reset-fees">恢复默认</button>
+          </div>
+        </details>
         <div class="form-summary">
-          <div class="summary-line"><span>预计成交金额</span><span class="mono" id="trade-cost">¥0</span></div>
-          <div class="summary-line"><span>现价市值</span><span class="mono" id="trade-mv">¥0</span></div>
-          <div class="summary-line"><span>相对买入价</span><span class="mono" id="trade-rel">--</span></div>
+          <div class="summary-line"><span>买入成交金额</span><span class="mono" id="trade-gross">¥0</span></div>
+          <div class="summary-line"><span>买入费用（佣金 + 过户费）</span><span class="mono" id="trade-buy-fees">¥0</span></div>
+          <div class="summary-line total"><span>买入总支出</span><span class="mono" id="trade-cost">¥0</span></div>
+          <div class="summary-line"><span>按现价卖出费用</span><span class="mono" id="trade-sell-fees">¥0</span></div>
+          <div class="summary-line"><span>按现价卖出净到账</span><span class="mono" id="trade-mv">¥0</span></div>
+          <div class="summary-line total"><span>扣费后模拟盈亏</span><span class="mono" id="trade-rel">--</span></div>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="btn-buy">买入</button>
@@ -368,8 +419,8 @@ a{color:var(--blue);text-decoration:none}
       <div class="panel-header"><h3>当前持仓</h3><span class="panel-meta" id="positions-count">0 只</span></div>
       <div class="table-wrap">
         <table class="table" id="positions-table">
-          <thead><tr><th>股票</th><th class="num">持仓</th><th class="num">成本价</th><th class="num">现价</th><th class="num">市值</th><th class="num">浮动盈亏</th><th class="num">收益率</th><th>操作</th></tr></thead>
-          <tbody id="positions-tbody"><tr class="empty-row"><td colspan="8" class="empty-cell">暂无持仓，在上方选择股票并点击「买入」开始模拟</td></tr></tbody>
+          <thead><tr><th>股票</th><th class="num">持仓</th><th class="num">买入均价</th><th class="num">含费成本</th><th class="num">现价</th><th class="num">卖出净额</th><th class="num">净盈亏</th><th class="num">净收益率</th><th>操作</th></tr></thead>
+          <tbody id="positions-tbody"><tr class="empty-row"><td colspan="9" class="empty-cell">暂无持仓，在上方选择股票并点击「买入」开始模拟</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -432,12 +483,51 @@ const REC_SORT = { strong_buy:0, buy:1, watch:2, caution:3, avoid:4 };
 // ── Storage ──
 function load(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f();}catch{return f();}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+function removeStored(k){try{localStorage.removeItem(k);}catch{}}
+
+const DEFAULT_FEES={commissionRate:.0003,minCommission:5,stampDutyRate:.0005,transferRate:.00001};
+function normalizeFees(value){
+  const v=value&&typeof value==="object"?value:{};
+  return {
+    commissionRate:Number.isFinite(Number(v.commissionRate))&&Number(v.commissionRate)>=0?Number(v.commissionRate):DEFAULT_FEES.commissionRate,
+    minCommission:Number.isFinite(Number(v.minCommission))&&Number(v.minCommission)>=0?Number(v.minCommission):DEFAULT_FEES.minCommission,
+    stampDutyRate:Number.isFinite(Number(v.stampDutyRate))&&Number(v.stampDutyRate)>=0?Number(v.stampDutyRate):DEFAULT_FEES.stampDutyRate,
+    transferRate:Number.isFinite(Number(v.transferRate))&&Number(v.transferRate)>=0?Number(v.transferRate):DEFAULT_FEES.transferRate
+  };
+}
 
 let positions = load("stockRecGui.positions",()=>[]);
 let predictions = load("stockRecGui.predictions",()=>[]);
 let capital = load("stockRecGui.capital",()=>100000);
-// Auto-detect stale localStorage: if positions referencing stocks not in current data, reset all
-if(positions.length>0){const codes=new Set(STOCKS.map(s=>s.code));const stale=positions.some(p=>!codes.has(p.code));if(stale){localStorage.clear();positions=[];capital=100000;}}
+let fees = normalizeFees(load("stockRecGui.fees",()=>DEFAULT_FEES));
+let totalFeesPaid = load("stockRecGui.totalFeesPaid",()=>null);
+
+// Migrate first-generation positions without losing saved holdings.
+positions=positions.map(p=>{
+  const qty=Number(p.qty)||0;
+  const avgPrice=Number(p.avgPrice??p.cost)||0;
+  const buyGross=Number(p.buyGross)||(avgPrice*qty);
+  const estimatedCommission=Math.max(buyGross*fees.commissionRate,fees.minCommission);
+  const estimatedBuyFees=Math.round((estimatedCommission+buyGross*fees.transferRate+Number.EPSILON)*100)/100;
+  const buyFees=Number.isFinite(Number(p.buyFees))?Number(p.buyFees):estimatedBuyFees;
+  const totalCost=Number(p.totalCost)||(buyGross+buyFees);
+  return {...p,qty,avgPrice,buyGross,buyFees,totalCost};
+}).filter(p=>p.qty>0&&p.avgPrice>0);
+if(totalFeesPaid===null||!Number.isFinite(Number(totalFeesPaid))) totalFeesPaid=positions.reduce((sum,p)=>sum+p.buyFees,0);
+totalFeesPaid=Number(totalFeesPaid);
+
+let cash = load("stockRecGui.cash",()=>null);
+if(cash===null||!Number.isFinite(Number(cash))) cash=Math.max(0,Number(capital)-positions.reduce((sum,p)=>sum+p.totalCost,0));
+cash=Number(cash);
+
+// A generated dashboard may contain a different stock list. Reset only trading account keys.
+if(positions.length>0){
+  const codes=new Set(STOCKS.map(s=>s.code));
+  if(positions.some(p=>!codes.has(p.code))){
+    ["stockRecGui.positions","stockRecGui.capital","stockRecGui.cash","stockRecGui.totalFeesPaid"].forEach(removeStored);
+    positions=[];capital=100000;cash=capital;totalFeesPaid=0;
+  }
+}
 
 // ── Toast ──
 function toast(msg,type="info"){const h=$("#toast-host");const e=document.createElement("div");e.className="toast "+type;e.textContent=msg;h.appendChild(e);setTimeout(()=>{e.classList.add("fade-out");setTimeout(()=>e.remove(),300);},2400);}
@@ -597,7 +687,6 @@ $("#sort-by").addEventListener("change",()=>{
 // TAB 2: 模拟交易
 // ═══════════════════════════════════════════
 
-// Populate stock selector
 const sel=$("#select-stock");
 STOCKS.forEach(s=>{
   const o=document.createElement("option");
@@ -610,45 +699,94 @@ STOCKS.forEach(s=>{
 });
 
 function getSelectedStock(){
-  const o=sel.selectedOptions[0];
-  if(!o) return null;
-  return {code:o.value,name:o.textContent.split(" ").slice(1).join(" ").split(" —")[0],price:parseFloat(o.dataset.price),open:parseFloat(o.dataset.open),pre_close:parseFloat(o.dataset.preClose)};
+  const s=STOCKS.find(item=>item.code===sel.value);
+  if(!s) return null;
+  return {...s,price:Number(s.price),open:Number(s.open),pre_close:Number(s.pre_close)};
 }
 
 function getBuyPrice(){
   const mode=$("input[name='price-mode']:checked")?.value||"open";
   const s=getSelectedStock();
   if(!s) return null;
-  if(mode==="open") return s.open||s.price;
-  if(mode==="pre_close") return s.pre_close||s.price;
+  if(mode==="open") return s.open>0?s.open:s.price;
+  if(mode==="pre_close") return s.pre_close>0?s.pre_close:s.price;
   if(mode==="current") return s.price;
-  if(mode==="custom"){const v=parseFloat($("#input-custom-price").value);return isNaN(v)?null:v;}
+  if(mode==="custom"){
+    const v=parseFloat($("#input-custom-price").value);
+    return Number.isFinite(v)&&v>0?v:null;
+  }
   return s.price;
 }
 
-// Toggle custom price visibility
+const roundMoney=v=>Math.round((Number(v)+Number.EPSILON)*100)/100;
+function calcTrade(side,price,qty){
+  const gross=roundMoney(Number(price)*Number(qty));
+  if(!(gross>0)) return {gross:0,commission:0,transfer:0,stampDuty:0,totalFees:0,total:0,net:0};
+  const commission=roundMoney(Math.max(gross*fees.commissionRate,fees.minCommission));
+  const transfer=roundMoney(gross*fees.transferRate);
+  const stampDuty=side==="sell"?roundMoney(gross*fees.stampDutyRate):0;
+  const totalFees=roundMoney(commission+transfer+stampDuty);
+  return {gross,commission,transfer,stampDuty,totalFees,total:roundMoney(gross+totalFees),net:roundMoney(gross-totalFees)};
+}
+
+function maxAffordableQty(budget,price){
+  if(!(budget>0)||!(price>0)) return 0;
+  let qty=Math.floor(budget/price/100)*100;
+  while(qty>=100&&calcTrade("buy",price,qty).total>budget) qty-=100;
+  return Math.max(0,qty);
+}
+
+function readFeeInputs(){
+  const values={
+    commissionRate:parseFloat($("#fee-commission").value)/100,
+    minCommission:parseFloat($("#fee-min-commission").value),
+    stampDutyRate:parseFloat($("#fee-stamp-duty").value)/100,
+    transferRate:parseFloat($("#fee-transfer").value)/100
+  };
+  return Object.values(values).every(v=>Number.isFinite(v)&&v>=0)?values:null;
+}
+
+function renderFeeInputs(){
+  $("#fee-commission").value=(fees.commissionRate*100).toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
+  $("#fee-min-commission").value=fees.minCommission.toFixed(2).replace(/\.00$/,"");
+  $("#fee-stamp-duty").value=(fees.stampDutyRate*100).toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
+  $("#fee-transfer").value=(fees.transferRate*100).toFixed(4).replace(/0+$/,"").replace(/\.$/,"");
+  $("#fee-summary-hint").textContent=`佣金 ${(fees.commissionRate*100).toFixed(3)}% · 最低 ${fees.minCommission.toFixed(2)} 元 · 印花税卖出单边`;
+}
+
+function syncFeesFromInputs(){
+  const next=readFeeInputs();
+  if(!next) return;
+  fees=normalizeFees(next);
+  save("stockRecGui.fees",fees);
+  renderPositions();updateTradeSummary();
+}
+
 $$("input[name='price-mode']").forEach(r=>r.addEventListener("change",()=>{
   $("#input-custom-price").classList.toggle("hidden",r.value!=="custom");
 }));
 
-// Update trade summary on input changes
 function updateTradeSummary(){
   const s=getSelectedStock();
   const bp=getBuyPrice();
   const qty=parseInt($("#input-qty").value)||0;
-  if(!s||bp==null||qty<=0){
-    $("#trade-cost").textContent="¥0";
-    $("#trade-mv").textContent="¥0";
-    $("#trade-rel").textContent="--";
-    return;
+  if(!s||!(bp>0)||qty<=0){
+    ["#trade-gross","#trade-buy-fees","#trade-cost","#trade-sell-fees","#trade-mv"].forEach(id=>$(id).textContent="¥0.00");
+    $("#trade-rel").textContent="--";$("#trade-rel").className="mono";return;
   }
-  const cost=bp*qty;
-  const mv=(s.price||bp)*qty;
-  const rel=s.price?((s.price-bp)/bp*100).toFixed(2):0;
-  $("#trade-cost").textContent=fmtCNY2(cost);
-  $("#trade-mv").textContent=fmtCNY2(mv);
-  $("#trade-rel").textContent=(rel>=0?"+":"")+rel+"%";
-  $("#trade-rel").className="mono "+(rel>0?"pnl-up":rel<0?"pnl-down":"");
+  const buy=calcTrade("buy",bp,qty);
+  const sell=calcTrade("sell",s.price>0?s.price:bp,qty);
+  const pnl=roundMoney(sell.net-buy.total);
+  const pnlPct=buy.total?pnl/buy.total*100:0;
+  $("#trade-gross").textContent=fmtCNY2(buy.gross);
+  $("#trade-buy-fees").textContent=fmtCNY2(buy.totalFees);
+  $("#trade-buy-fees").title=`佣金 ${fmtCNY2(buy.commission)}，过户费 ${fmtCNY2(buy.transfer)}`;
+  $("#trade-cost").textContent=fmtCNY2(buy.total);
+  $("#trade-sell-fees").textContent=fmtCNY2(sell.totalFees);
+  $("#trade-sell-fees").title=`佣金 ${fmtCNY2(sell.commission)}，印花税 ${fmtCNY2(sell.stampDuty)}，过户费 ${fmtCNY2(sell.transfer)}`;
+  $("#trade-mv").textContent=fmtCNY2(sell.net);
+  $("#trade-rel").textContent=`${fmtCNY2(pnl)} (${fmtPct(pnlPct)})`;
+  $("#trade-rel").className="mono "+clsPnl(pnl);
 }
 
 ["change","input"].forEach(ev=>{
@@ -657,59 +795,67 @@ function updateTradeSummary(){
   $("#input-custom-price").addEventListener(ev,updateTradeSummary);
 });
 $$("input[name='price-mode']").forEach(r=>r.addEventListener("change",updateTradeSummary));
+["#fee-commission","#fee-min-commission","#fee-stamp-duty","#fee-transfer"].forEach(id=>{
+  $(id).addEventListener("input",syncFeesFromInputs);
+  $(id).addEventListener("change",()=>{syncFeesFromInputs();renderFeeInputs();});
+});
+$("#btn-reset-fees").addEventListener("click",()=>{
+  fees={...DEFAULT_FEES};save("stockRecGui.fees",fees);
+  renderFeeInputs();renderPositions();updateTradeSummary();toast("交易费用已恢复默认值","info");
+});
 
-// Quick fill percentage buttons
 $$(".qty-shortcut .chip-sm").forEach(b=>b.addEventListener("click",()=>{
   const pct=parseInt(b.dataset.pct)/100;
-  const s=getSelectedStock();
   const bp=getBuyPrice();
-  if(!s||bp==null) return;
-  const maxQty=Math.floor(((parseFloat($("#input-capital").value)||capital)*pct)/bp/100)*100;
-  $("#input-qty").value=Math.max(100,maxQty);
-  updateTradeSummary();
+  if(!(bp>0)) return;
+  const qty=maxAffordableQty(cash*pct,bp);
+  $("#input-qty").value=qty;updateTradeSummary();
+  if(!qty) toast(`当前可用资金 ${fmtCNY2(cash)} 不足以买入 1 手（费用已计入）`,"error");
 }));
 
-// Buy
 $("#btn-buy").addEventListener("click",()=>{
   const s=getSelectedStock();
   const bp=getBuyPrice();
   const qty=parseInt($("#input-qty").value)||0;
-  if(!s||bp==null||qty<100||qty%100!==0){
-    toast("请输入正确的买入数量（100 股起，100 的倍数）","error"); return;
+  if(!s||!(bp>0)||qty<100||qty%100!==0){
+    toast("请输入正确的买入价格和数量（100 股起，100 的倍数）","error");return;
   }
-  const cost=bp*qty;
-  const cash=parseFloat($("#input-capital").value)||capital;
-  const totalHeld=positions.reduce((a,p)=>a+p.cost*p.qty,0);
-  const avail=cash-totalHeld;
-  if(cost>avail){toast("可用资金不足！减少买入数量或增加初始资金","error");return;}
-
-  // Check existing position
-  let pos=positions.find(p=>p.code===s.code);
-  if(pos){pos.qty+=qty;pos.cost=((pos.cost*(pos.qty-qty))+(bp*qty))/pos.qty;}
-  else positions.push({code:s.code,name:s.name,qty,cost:bp,date:new Date().toISOString().slice(0,10)});
-  save("stockRecGui.positions",positions);
-  capital=cash;
-  save("stockRecGui.capital",capital);
-  renderPositions();
-  updateTradeSummary();
-  toast(`已买入 ${s.name} ${qty} 股 @ ${bp.toFixed(2)}`,"success");
+  const trade=calcTrade("buy",bp,qty);
+  if(trade.total>cash){
+    toast(`可用资金不足：需要 ${fmtCNY2(trade.total)}，当前 ${fmtCNY2(cash)}（已计费用）`,"error");return;
+  }
+  const pos=positions.find(p=>p.code===s.code);
+  if(pos){
+    pos.qty+=qty;pos.buyGross=roundMoney(pos.buyGross+trade.gross);pos.buyFees=roundMoney(pos.buyFees+trade.totalFees);
+    pos.totalCost=roundMoney(pos.totalCost+trade.total);pos.avgPrice=pos.buyGross/pos.qty;
+  }else{
+    positions.push({code:s.code,name:s.name,qty,avgPrice:bp,buyGross:trade.gross,buyFees:trade.totalFees,totalCost:trade.total,date:new Date().toISOString().slice(0,10)});
+  }
+  cash=roundMoney(cash-trade.total);totalFeesPaid=roundMoney(totalFeesPaid+trade.totalFees);
+  saveTradingAccount();renderPositions();updateTradeSummary();
+  toast(`已买入 ${s.name} ${qty} 股，总支出 ${fmtCNY2(trade.total)}（费用 ${fmtCNY2(trade.totalFees)}）`,"success");
 });
 
-$("#input-capital").addEventListener("change",()=>{capital=parseFloat($("#input-capital").value)||capital;save("stockRecGui.capital",capital);renderPositions();});
+$("#input-capital").addEventListener("change",()=>{
+  const next=parseFloat($("#input-capital").value);
+  if(!(next>0)){$("#input-capital").value=capital;toast("初始资金必须大于 0","error");return;}
+  const nextCash=roundMoney(cash+(next-capital));
+  if(nextCash<0){$("#input-capital").value=capital;toast("调整后的资金不能低于已投入金额","error");return;}
+  capital=roundMoney(next);cash=nextCash;saveTradingAccount();renderPositions();
+});
 
-// Reset
 $("#btn-reset-account").addEventListener("click",()=>{
-  if(!confirm("确定要清空所有持仓并重置账户吗？")) return;
-  positions=[];
-  capital=100000;
-  save("stockRecGui.positions",positions);
-  save("stockRecGui.capital",capital);
-  $("#input-capital").value=capital;
-  renderPositions();
-  toast("账户已重置","info");
+  if(!confirm("确定要清空所有持仓和费用记录并重置账户吗？")) return;
+  const requested=parseFloat($("#input-capital").value);
+  capital=requested>0?roundMoney(requested):100000;cash=capital;positions=[];totalFeesPaid=0;
+  saveTradingAccount();renderPositions();updateTradeSummary();toast(`账户已按 ${fmtCNY2(capital)} 重置`,"info");
 });
 
-// Sell
+function saveTradingAccount(){
+  save("stockRecGui.positions",positions);save("stockRecGui.capital",capital);
+  save("stockRecGui.cash",cash);save("stockRecGui.totalFeesPaid",totalFeesPaid);
+}
+
 document.addEventListener("click",e=>{
   if(!e.target.classList.contains("action-btn")||!e.target.dataset.sell) return;
   const code=e.target.dataset.sell;
@@ -717,65 +863,56 @@ document.addEventListener("click",e=>{
   if(idx<0) return;
   const pos=positions[idx];
   const s=STOCKS.find(x=>x.code===code);
-  const curPrice=s?s.price:pos.cost;
-  const pnl=(curPrice-pos.cost)*pos.qty;
-  positions.splice(idx,1);
-  capital+=pos.cost*pos.qty;
-  save("stockRecGui.positions",positions);
-  save("stockRecGui.capital",capital);
-  renderPositions();
-  toast(`已卖出 ${pos.name} 全部 ${pos.qty} 股，盈亏 ${fmtCNY2(pnl)}`,"info");
+  const curPrice=Number(s?.price)||pos.avgPrice;
+  const trade=calcTrade("sell",curPrice,pos.qty);
+  const pnl=roundMoney(trade.net-pos.totalCost);
+  const details=`成交额 ${fmtCNY2(trade.gross)}，卖出费用 ${fmtCNY2(trade.totalFees)}，净到账 ${fmtCNY2(trade.net)}`;
+  if(!confirm(`确认以 ${curPrice.toFixed(2)} 元卖出 ${pos.name} 全部 ${pos.qty} 股？\n${details}`)) return;
+  positions.splice(idx,1);cash=roundMoney(cash+trade.net);totalFeesPaid=roundMoney(totalFeesPaid+trade.totalFees);
+  saveTradingAccount();renderPositions();updateTradeSummary();
+  toast(`已卖出 ${pos.name}，扣费后盈亏 ${fmtCNY2(pnl)}`,pnl>=0?"success":"info");
 });
+
+function getPositionSnapshot(pos){
+  const s=STOCKS.find(x=>x.code===pos.code);
+  const currentPrice=Number(s?.price)||pos.avgPrice;
+  const sell=calcTrade("sell",currentPrice,pos.qty);
+  const pnl=roundMoney(sell.net-pos.totalCost);
+  return {currentPrice,sell,pnl,pnlPct:pos.totalCost?pnl/pos.totalCost*100:0};
+}
 
 function renderPositions(){
   const tbody=$("#positions-tbody");
-  const cash=parseFloat($("#input-capital").value)||capital;
-  capital=cash;
-  save("stockRecGui.capital",capital);
-
   if(positions.length===0){
-    tbody.innerHTML='<tr class="empty-row"><td colspan="8" class="empty-cell">暂无持仓，在上方选择股票并点击「买入」开始模拟</td></tr>';
+    tbody.innerHTML='<tr class="empty-row"><td colspan="9" class="empty-cell">暂无持仓，在上方选择股票并点击「买入」开始模拟</td></tr>';
   }else{
     tbody.innerHTML=positions.map(p=>{
-      const s=STOCKS.find(x=>x.code===p.code);
-      const cp=s?s.price:p.cost;
-      const mv=cp*p.qty;
-      const pnl=(cp-p.cost)*p.qty;
-      const pnlPct=p.cost?((cp-p.cost)/p.cost*100):0;
+      const snap=getPositionSnapshot(p);
       return `<tr>
         <td><span style="font-weight:600">${esc(p.name)}</span> <span style="font-family:var(--font-mono);color:var(--text-dim);font-size:11px">${esc(p.code)}</span></td>
-        <td class="num">${p.qty}</td>
-        <td class="num">${p.cost.toFixed(2)}</td>
-        <td class="num">${cp!=null?cp.toFixed(2):"--"}</td>
-        <td class="num">${fmtCNY2(mv)}</td>
-        <td class="num ${clsPnl(pnl)}">${fmtCNY2(pnl)}</td>
-        <td class="num ${clsPnl(pnl)}">${fmtPct(pnlPct)}</td>
+        <td class="num">${p.qty}</td><td class="num">${p.avgPrice.toFixed(2)}</td>
+        <td class="num" title="成交额 ${fmtCNY2(p.buyGross)} + 买入费用 ${fmtCNY2(p.buyFees)}">${fmtCNY2(p.totalCost)}</td>
+        <td class="num">${snap.currentPrice.toFixed(2)}</td>
+        <td class="num" title="已扣预计卖出费用 ${fmtCNY2(snap.sell.totalFees)}">${fmtCNY2(snap.sell.net)}</td>
+        <td class="num ${clsPnl(snap.pnl)}">${fmtCNY2(snap.pnl)}</td>
+        <td class="num ${clsPnl(snap.pnl)}">${fmtPct(snap.pnlPct)}</td>
         <td><button class="action-btn" data-sell="${esc(p.code)}">卖出</button></td>
       </tr>`;
     }).join("");
   }
-
-  // Account summary
-  const totalCost=positions.reduce((a,p)=>a+p.cost*p.qty,0);
-  const totalMv=positions.reduce((a,p)=>{const s=STOCKS.find(x=>x.code===p.code);return a+(s?s.price:p.cost)*p.qty;},0);
-  const pnl=totalMv-totalCost;
-  const pnlPct=totalCost?((totalMv-totalCost)/totalCost*100):0;
-  const total=cash-totalCost+totalMv;
-
-  $("#acc-initial").textContent=fmtCNY2(cash);
-  $("#acc-cash").textContent=fmtCNY2(cash-totalCost);
-  $("#acc-market").textContent=fmtCNY2(totalMv);
-  $("#acc-total").textContent=fmtCNY2(total);
-  $("#acc-pnl").textContent=fmtCNY2(pnl);
-  $("#acc-pnl").className="summary-value mono "+clsPnl(pnl);
-  $("#acc-pnl-pct").textContent=fmtPct(pnlPct);
-  $("#acc-pnl-pct").className="summary-sub mono "+clsPnl(pnl);
-
-  $("#positions-count").textContent=positions.length+" 只";
-  $("#tab-badge-trading").textContent=positions.length;
-  $("#input-capital").value=cash;
+  const snapshots=positions.map(getPositionSnapshot);
+  const liquidValue=roundMoney(snapshots.reduce((sum,item)=>sum+item.sell.net,0));
+  const total=roundMoney(cash+liquidValue);
+  const pnl=roundMoney(total-capital);
+  const pnlPct=capital?pnl/capital*100:0;
+  $("#acc-initial").textContent=fmtCNY2(capital);$("#acc-cash").textContent=fmtCNY2(cash);
+  $("#acc-market").textContent=fmtCNY2(liquidValue);$("#acc-total").textContent=fmtCNY2(total);
+  $("#acc-pnl").textContent=fmtCNY2(pnl);$("#acc-pnl").className="summary-value mono "+clsPnl(pnl);
+  $("#acc-pnl-pct").textContent=fmtPct(pnlPct);$("#acc-pnl-pct").className="summary-sub mono "+clsPnl(pnl);
+  $("#acc-fees").textContent=fmtCNY2(totalFeesPaid);$("#positions-count").textContent=positions.length+" 只";
+  $("#tab-badge-trading").textContent=positions.length;$("#input-capital").value=capital;
+  saveTradingAccount();
 }
-
 // ═══════════════════════════════════════════
 // TAB 3: 涨跌预测
 // ═══════════════════════════════════════════
@@ -921,6 +1058,7 @@ $("#btn-clear-pred").addEventListener("click",()=>{
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+renderFeeInputs();
 renderStockGrid();
 renderPositions();
 renderPredictGrid();
