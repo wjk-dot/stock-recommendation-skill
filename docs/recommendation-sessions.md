@@ -1,0 +1,76 @@
+# 推荐会话发布流程
+
+统一量化工作台不再直接读取某个浏览器本地文件。Skill 完成荐股后，将结构化结果发布给 Docker 后端；工作台读取最新推荐会话，再把用户点击的股票带入 K 线、回测和资金流研究区。
+
+## 前置条件
+
+在项目根目录启动本地服务：
+
+```powershell
+.\scripts\start-docker.ps1
+```
+
+服务地址：
+
+- API：`http://127.0.0.1:8765/api`
+- 统一工作台（后续页面）：`http://127.0.0.1:8765/templates/workbench.html`
+
+## Skill 调用链
+
+```text
+a-stock-analysis 当日行情
+        ↓
+scripts/capture_analysis.py（统一 UTF-8）
+        ↓
+scripts/pack_recommendations.py（行情 + Codex 理由 + 用户画像）
+        ↓
+recommendations.json
+        ↓
+scripts/publish_recommendations.py
+        ↓
+POST /api/recommendations
+        ↓
+工作台 GET /api/recommendations/latest
+```
+
+## 发布命令
+
+先生成 `recommendations.json`：
+
+```powershell
+python scripts\pack_recommendations.py `
+  --analysis analysis.json `
+  --annotations annotations.json `
+  --profile profile.json `
+  --output recommendations.json
+```
+
+再发布：
+
+```powershell
+python scripts\publish_recommendations.py recommendations.json
+```
+
+如本机 Python 命令未配置，可使用已有虚拟环境解释器：
+
+```powershell
+& .\backend\.venv\Scripts\python.exe scripts\publish_recommendations.py recommendations.json
+```
+
+只校验 JSON 结构且不写入后端：
+
+```powershell
+python scripts\publish_recommendations.py recommendations.json --dry-run
+```
+
+脚本会输出会话 ID 和统一工作台 URL。它按 UTF-8 原始字节读写 JSON，避免 PowerShell 文本重定向导致股票中文名称乱码。
+
+## API 约定
+
+- `POST /api/recommendations`：新建一份推荐会话；每只股票必须带 6 位数字 `code`。
+- `GET /api/recommendations/latest`：读取最新会话。
+- `GET /api/recommendations/{session_id}`：读取指定历史会话。
+
+运行时会话文件保存在 `data/recommendations/`，该目录不会提交到 Git，也不会上传真实用户资金或推荐数据。
+
+若尚未发布会话，`GET /latest` 会返回 `404` 与结构化错误码 `recommendation_session_missing`。

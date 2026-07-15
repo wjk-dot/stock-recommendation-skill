@@ -1,5 +1,7 @@
 # Stock Recommendation GUI
 
+> 推荐会话与统一工作台的发布说明见 [`docs/recommendation-sessions.md`](docs/recommendation-sessions.md)。
+
 > **v0.4.0：Skill + Docker 量化研究 MVP。** 本仓库同时包含当日荐股 Skill 与本地量化研究后端；实施计划见 [`docs/plans/2026-07-14-quant-platform-plan.md`](docs/plans/2026-07-14-quant-platform-plan.md)。
 
 ## Docker 量化控制台（历史 K 线、回测、资金流）

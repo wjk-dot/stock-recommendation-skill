@@ -18,7 +18,7 @@ dashboard.html
 examples/sample_output.html
 
 # Local market cache
-data/
+/data/
 
 # Local user inputs and generated recommendation data
 analysis.json
