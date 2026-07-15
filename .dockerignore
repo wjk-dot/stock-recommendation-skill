@@ -1,0 +1,8 @@
+.git
+.pytest_cache
+__pycache__
+*.pyc
+analysis.json
+analysis_clean.json
+recommendations.json
+*.html

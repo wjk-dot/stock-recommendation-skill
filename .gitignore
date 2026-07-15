@@ -1,4 +1,5 @@
 # Python
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -15,6 +16,16 @@ _fetch.py
 # Generated HTML output (rebuilt on demand)
 dashboard.html
 examples/sample_output.html
+
+# Local market cache
+data/
+
+# Local user inputs and generated recommendation data
+analysis.json
+analysis_clean.json
+annotations.json
+profile.json
+recommendations.json
 
 # IDE
 .vscode/

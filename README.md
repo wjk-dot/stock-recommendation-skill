@@ -1,5 +1,23 @@
-# Stock Recommendation Skill
+# Stock Recommendation GUI
 
+> **v0.4.0：Skill + Docker 量化研究 MVP。** 本仓库同时包含当日荐股 Skill 与本地量化研究后端；实施计划见 [`docs/plans/2026-07-14-quant-platform-plan.md`](docs/plans/2026-07-14-quant-platform-plan.md)。
+
+## Docker 量化控制台（历史 K 线、回测、资金流）
+
+在 Windows 的项目根目录执行：
+
+```powershell
+.\scripts\start-docker.ps1 -Rebuild
+```
+
+打开：<http://127.0.0.1:8765/templates/quant-dashboard.html>
+
+该控制台提供单股日线 K 线、含佣金/印花税/过户费/滑点的均线交叉历史回测，以及 AkShare 市场资金流向。历史数据按需缓存在 `data/market.duckdb`：不会下载全市场数据，且该目录不会提交到 Git。
+
+- 历史日线：本地 DuckDB 缓存 → Baostock → AkShare 自动降级；
+- 无可用行情时返回明确提示，不伪造价格或回测结果；
+- 详细启动、Docker 磁盘迁移和故障排查见 [`docs/docker-windows.md`](docs/docker-windows.md)；
+- API 与数据源说明见 [`docs/quant-backend.md`](docs/quant-backend.md)。
 
 一个用于 Codex 的 A 股推荐与模拟交易 GUI skill。
 

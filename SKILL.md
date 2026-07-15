@@ -5,6 +5,17 @@ description: 把 Codex 的 A 股推荐结果打包成可交互的 HTML 量化回
 
 # Stock Recommendation GUI (A 股)
 
+## 量化后端路由
+
+本 Skill 负责自然语言交互、个性化提问、调用 `a-stock-analysis` 和组织推荐结果。涉及历史行情或回测时，调用本项目的 `quant-backend` API（默认 `http://127.0.0.1:8000`）：
+
+- “历史 K 线”“日线走势”“均线” -> `GET /api/stocks/{symbol}/daily`。
+- “回测”“策略收益”“最大回撤” -> 先确认股票、区间、策略、初始资金和费用，再 `POST /api/backtests`。
+- “市场资金流向”“板块资金”“主力资金” -> `GET /api/market-flow`；返回 `source=unavailable` 时必须明确显示暂无全市场数据。
+- 只要求当日荐股、当日模拟交易或涨跌预测 -> 继续使用 `a-stock-analysis` 和当前自包含 HTML 流程。
+
+后端启动：仓库根目录执行 `docker compose up --build`，或在 `backend` 目录执行 `uv sync --group dev` 后运行 `uv run --group dev uvicorn app.main:app --reload`。QVeris 仅作为未来可选备用数据源，不能假设用户拥有你的 API Key。
+
 把 Codex 选出来的 A 股推荐结果，连同推荐理由、风险提示、分时量能等当日数据，渲染成一个自包含、可直接在浏览器里打开的交互式 HTML 页面。页面在浏览器侧用 JavaScript 模拟交易、记录涨跌预测，状态用 localStorage 持久化，不需要任何后端。
 
 > 数据源：本 skill 不直接联网，所有行情数据来自上游 a-stock-analysis skill 在 Codex 内采集到的当日实时行情 + 分时量能分析。
