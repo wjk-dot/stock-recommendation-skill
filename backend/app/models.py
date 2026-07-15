@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DailyBar(BaseModel):
@@ -75,3 +75,32 @@ class MarketFlow(BaseModel):
     sectors: list[dict[str, Any]] = Field(default_factory=list)
     timeline: list[dict[str, Any]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+
+class RecommendationSessionCreate(BaseModel):
+    """Skill 生成的当日推荐结果；字段与 pack_recommendations.py 输出保持一致。"""
+
+    meta: dict[str, Any] = Field(default_factory=dict)
+    user_profile: dict[str, Any] = Field(default_factory=dict)
+    stocks: list[dict[str, Any]] = Field(min_length=1, max_length=50)
+    market_overview: dict[str, Any] = Field(default_factory=dict)
+
+    @staticmethod
+    def _stock_code(stock: dict[str, Any]) -> str:
+        return str(stock.get("code") or "").strip()
+
+    @field_validator("stocks")
+    @classmethod
+    def validate_stocks(cls, stocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for stock in stocks:
+            code = cls._stock_code(stock)
+            if not code.isdigit() or len(code) != 6:
+                raise ValueError("每只推荐股票都必须包含 6 位数字 code，例如 000001")
+            name = stock.get("name")
+            if name is not None and not isinstance(name, str):
+                raise ValueError(f"股票 {code} 的 name 必须是文本")
+        return stocks
+
+class RecommendationSession(RecommendationSessionCreate):
+    session_id: str
+    created_at: datetime
