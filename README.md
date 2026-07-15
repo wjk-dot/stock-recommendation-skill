@@ -14,6 +14,8 @@
 
 打开：<http://127.0.0.1:8765/templates/quant-dashboard.html>
 
+推荐结果发布到后端后，使用统一入口：<http://127.0.0.1:8765/templates/workbench.html>。它会读取最新推荐会话，并把选中的推荐股票自动带入 K 线、成本回测和市场资金流研究区。
+
 该控制台提供单股日线 K 线、含佣金/印花税/过户费/滑点的均线交叉历史回测，以及 AkShare 市场资金流向。历史数据按需缓存在 `data/market.duckdb`：不会下载全市场数据，且该目录不会提交到 Git。
 
 - 历史日线：本地 DuckDB 缓存 → Baostock → AkShare 自动降级；
