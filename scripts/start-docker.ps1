@@ -37,5 +37,6 @@ try {
     Pop-Location
 }
 
+Write-Host "Workbench:       http://127.0.0.1:8765/templates/workbench.html"
 Write-Host "Quant dashboard: http://127.0.0.1:8765/templates/quant-dashboard.html"
 Write-Host "API health:      http://127.0.0.1:8765/api/health"
