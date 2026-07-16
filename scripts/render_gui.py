@@ -32,7 +32,8 @@ from text_io import ensure_text_is_not_garbled, read_json_path, read_json_stdin,
 
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
-TEMPLATE_PATH = SKILL_ROOT / "templates" / "dashboard.html"
+# VANTA 是正式产品界面；dashboard.html 保留为第一代兼容模板。
+TEMPLATE_PATH = SKILL_ROOT / "templates" / "orbit-3d-web.html"
 
 DEFAULT_META = {
     "title": "Codex 量化推荐控制台",

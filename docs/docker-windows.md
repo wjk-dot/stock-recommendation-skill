@@ -46,8 +46,10 @@ docker compose up --build -d
 打开量化控制台：
 
 ```text
-http://127.0.0.1:8765/templates/quant-dashboard.html
+http://127.0.0.1:8765/templates/orbit-3d-web.html
 ```
+
+这是 VANTA 量化工作台的 Docker 入口，可直接测试真实日线、MA 回测和市场资金流向。若要打开某次 Codex 推荐生成的带股票数据页面，请用 `scripts/render_gui.py` 输出 `dashboard.html`；页面会自动请求本机 `http://127.0.0.1:8000` 后端。
 
 健康检查：
 

@@ -22,12 +22,11 @@ try {
 Push-Location $projectRoot
 try {
     if ($Rebuild) {
-        # 先构建；构建失败时保留当前正在运行的工作台，避免无谓停服。
-        & $dockerPath compose build
+        & $dockerPath compose down --remove-orphans
         if ($LASTEXITCODE -ne 0) {
-            throw "Docker Compose failed to build the quant backend. Existing services were left unchanged."
+            throw "Docker Compose failed to stop the existing quant services."
         }
-        & $dockerPath compose up -d --no-build --force-recreate --remove-orphans
+        & $dockerPath compose up --build -d
     } else {
         & $dockerPath compose up -d
     }
@@ -38,6 +37,5 @@ try {
     Pop-Location
 }
 
-Write-Host "Workbench:       http://127.0.0.1:8765/templates/workbench.html"
-Write-Host "Quant dashboard: http://127.0.0.1:8765/templates/quant-dashboard.html"
+Write-Host "Quant dashboard: http://127.0.0.1:8765/templates/orbit-3d-web.html"
 Write-Host "API health:      http://127.0.0.1:8765/api/health"

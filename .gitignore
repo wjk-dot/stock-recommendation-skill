@@ -16,9 +16,12 @@ _fetch.py
 # Generated HTML output (rebuilt on demand)
 dashboard.html
 examples/sample_output.html
+orbit-3d-preview.html
+quant-terminal-preview.html
+.tmp-check-*.js
 
 # Local market cache
-/data/
+data/
 
 # Local user inputs and generated recommendation data
 analysis.json

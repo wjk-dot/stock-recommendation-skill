@@ -1,27 +1,6 @@
 # Stock Recommendation GUI
 
-> 推荐会话与统一工作台的发布说明见 [`docs/recommendation-sessions.md`](docs/recommendation-sessions.md)。
-
-> **v0.4.0：Skill + Docker 量化研究 MVP。** 本仓库同时包含当日荐股 Skill 与本地量化研究后端；实施计划见 [`docs/plans/2026-07-14-quant-platform-plan.md`](docs/plans/2026-07-14-quant-platform-plan.md)。
-
-## Docker 量化控制台（历史 K 线、回测、资金流）
-
-在 Windows 的项目根目录执行：
-
-```powershell
-.\scripts\start-docker.ps1 -Rebuild
-```
-
-打开：<http://127.0.0.1:8765/templates/quant-dashboard.html>
-
-推荐结果发布到后端后，使用统一入口：<http://127.0.0.1:8765/templates/workbench.html>。它会读取最新推荐会话，并把选中的推荐股票自动带入 K 线、成本回测、模拟交易、涨跌预测和市场资金流研究区。
-
-该控制台提供单股日线 K 线、含佣金/印花税/过户费/滑点的均线交叉历史回测，以及 AkShare 市场资金流向。历史数据按需缓存在 `data/market.duckdb`：不会下载全市场数据，且该目录不会提交到 Git。
-
-- 历史日线：本地 DuckDB 缓存 → Baostock → AkShare 自动降级；
-- 无可用行情时返回明确提示，不伪造价格或回测结果；
-- 详细启动、Docker 磁盘迁移和故障排查见 [`docs/docker-windows.md`](docs/docker-windows.md)；
-- API 与数据源说明见 [`docs/quant-backend.md`](docs/quant-backend.md)。
+> 项目已开始升级为“Skill + 量化后端”架构。后端实施计划和运行方式见 [`docs/quant-backend.md`](docs/quant-backend.md) 与 [`docs/plans/2026-07-14-quant-platform-plan.md`](docs/plans/2026-07-14-quant-platform-plan.md)。
 
 一个用于 Codex 的 A 股推荐与模拟交易 GUI skill。
 
@@ -208,13 +187,33 @@ python scripts\render_gui.py `
   --output dashboard.html
 ```
 
-生成后的 `dashboard.html` 是自包含页面，不需要后端服务。双击文件即可打开，也可以使用本地静态服务器：
+生成后的 `dashboard.html` 默认使用 **VANTA 亮色量化工作台**，包含机会池、资金流向、含成本模拟盘、涨跌预测记录、TradingView 风格 K 线和 MA 回测入口。该文件本身可离线查看推荐、模拟盘和预测记录；K 线、真实回测、市场资金流向需要 Docker 后端。
+
+双击文件即可打开，也可以使用本地静态服务器：
 
 ```powershell
 python -m http.server 8765 --directory .
 ```
 
 然后访问 <http://127.0.0.1:8765/dashboard.html>。
+
+## 量化工作台与 Docker
+
+启动 Docker 后，直接打开：
+
+```text
+http://127.0.0.1:8765/templates/orbit-3d-web.html
+```
+
+这个地址是 VANTA 的“空数据/接口演示入口”：可测试真实日线、回测和资金流 API。要在其中展示某次 Codex 推荐结果，应使用上面的 `render_gui.py` 命令生成带数据的 `dashboard.html`。
+
+Windows 下推荐在项目根目录执行：
+
+```powershell
+.\scripts\start-docker.ps1 -Rebuild
+```
+
+详细的 Docker 磁盘迁移和排错见 [`docs/docker-windows.md`](docs/docker-windows.md)。
 
 ## 模拟交易费用
 
@@ -246,7 +245,9 @@ stock-recommendation-skill/
 ├── scripts/capture_analysis.py
 ├── scripts/pack_recommendations.py
 ├── scripts/render_gui.py
-└── templates/dashboard.html
+├── templates/orbit-3d-web.html  # 默认正式 GUI：VANTA 亮色工作台
+├── templates/dashboard.html     # 第一代兼容模板
+└── templates/quant-dashboard.html # 早期 Docker 演示页（保留作对照）
 ```
 
 ## 许可证
