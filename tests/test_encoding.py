@@ -27,6 +27,8 @@ class EncodingTests(unittest.TestCase):
             ensure_text_is_not_garbled({"name": "平锟斤拷锟斤拷"})
         with self.assertRaises(ValueError):
             ensure_text_is_not_garbled({"name": "����"})
+        with self.assertRaises(ValueError):
+            ensure_text_is_not_garbled({"name": "???"})
 
     def test_pack_keeps_clean_name(self) -> None:
         result = pack(
