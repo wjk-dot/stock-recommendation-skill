@@ -55,6 +55,13 @@ class BacktestResult(BaseModel):
     max_drawdown: float
     trade_count: int
     final_equity: float
+    benchmark_return: float
+    benchmark_final_equity: float
+    excess_return: float
+    win_rate: float | None = None
+    profit_loss_ratio: float | None = None
+    average_holding_days: float | None = None
+    closed_trade_count: int = 0
     equity_curve: list[dict[str, Any]]
     trades: list[Trade]
     data_source: str = "unknown"
