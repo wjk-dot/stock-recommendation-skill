@@ -22,11 +22,12 @@ try {
 Push-Location $projectRoot
 try {
     if ($Rebuild) {
-        & $dockerPath compose down --remove-orphans
+        # 先构建；构建失败时保留当前正在运行的工作台，避免无谓停服。
+        & $dockerPath compose build
         if ($LASTEXITCODE -ne 0) {
-            throw "Docker Compose failed to stop the existing quant services."
+            throw "Docker Compose failed to build the quant backend. Existing services were left unchanged."
         }
-        & $dockerPath compose up --build -d
+        & $dockerPath compose up -d --no-build --force-recreate --remove-orphans
     } else {
         & $dockerPath compose up -d
     }
