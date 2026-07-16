@@ -100,4 +100,138 @@ function verifyPredictions(){let count=0;predictions.forEach(p=>{if(p.verified)r
 $('#verify-predictions').onclick=verifyPredictions;$('#clear-predictions').onclick=()=>{if(confirm('Clear all local prediction records?')){predictions=[];persistPredictions();renderPredictions();renderPredictionHistory();renderPredictionStats();toast('Prediction ledger cleared')}};
 function seedLabDates(){let today=new Date(),end=today.toISOString().slice(0,10),begin=new Date(today.getTime()-180*86400000).toISOString().slice(0,10);if(!$('#bar-start').value)$('#bar-start').value=begin;if(!$('#bar-end').value)$('#bar-end').value=end;$('#bt-capital').value=account.capital}
 function tick(){let d=new Date();$('#holo-time').textContent=d.toLocaleTimeString('zh-CN',{hour12:false})}function init(){renderHome();renderSignals();syncTrade();renderFeeControls();renderAccount();renderPredictions();renderPredictionHistory();renderPredictionStats();seedLabDates();heroWave();background();tick();setInterval(tick,1000);setTimeout(()=>renderFlow({source:'preview',scope:'preview snapshot',net_inflow_cny:3.65e9,sectors:defaultSectors()}),200)}init();
+</script><script>
+/* VANTA lab completion: recommendation -> real K-line -> complete backtest report. */
+(() => {
+  const labStyle = document.createElement('style');
+  labStyle.textContent = `
+    .lab-results{margin-top:15px;padding:20px;border-radius:23px}.lab-results[hidden]{display:none}.lab-results-head{display:flex;justify-content:space-between;gap:14px;align-items:end}.lab-results h2{margin:5px 0 0;font-size:23px;letter-spacing:-.05em}.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:17px}.result-item{padding:12px;border:1px solid var(--line);border-radius:11px;background:#0c1725}.result-item span{display:block;color:var(--muted);font-size:10px}.result-item b{display:block;margin-top:7px;font:700 17px var(--mono)}.equity-wrap{height:285px;margin-top:16px;border:1px solid var(--line);border-radius:14px;background:#09121e;overflow:hidden}.equity-wrap canvas{width:100%;height:100%}.equity-legend{display:flex;gap:14px;margin:14px 0 0;color:var(--muted);font-size:11px}.equity-legend i{display:inline-block;width:18px;height:2px;margin-right:5px;vertical-align:middle;background:#8ebeff}.equity-legend i.benchmark{background:#ffc971}.trade-table-wrap{max-height:270px;margin-top:16px;overflow:auto;border:1px solid var(--line);border-radius:12px}.trade-table{width:100%;border-collapse:collapse;font-size:12px}.trade-table th,.trade-table td{padding:10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.trade-table th{position:sticky;top:0;background:#122034;color:var(--muted);font-size:10px}.trade-table th:first-child,.trade-table td:first-child{text-align:left}.trade-table .empty-row{text-align:center;color:var(--muted)}@media(max-width:960px){.result-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.result-grid{grid-template-columns:1fr 1fr}.equity-wrap{height:220px}}
+  `;
+  document.head.append(labStyle);
+
+  const resultPanel = document.createElement('article');
+  resultPanel.id = 'backtest-results';
+  resultPanel.className = 'lab-results glass';
+  resultPanel.hidden = true;
+  resultPanel.innerHTML = `<div class="lab-results-head"><div><div class="eyebrow">HISTORICAL BACKTEST REPORT</div><h2>历史回测分析</h2></div><span id="bt-source" class="muted mono" style="font-size:10px">--</span></div><div class="result-grid"><div class="result-item"><span>策略累计收益</span><b id="bt-report-return">--</b></div><div class="result-item"><span>Buy &amp; Hold</span><b id="bt-benchmark">--</b></div><div class="result-item"><span>超额收益</span><b id="bt-excess">--</b></div><div class="result-item"><span>最大回撤</span><b id="bt-report-drawdown">--</b></div><div class="result-item"><span>年化收益</span><b id="bt-annual">--</b></div><div class="result-item"><span>胜率（已平仓）</span><b id="bt-win-rate">--</b></div><div class="result-item"><span>盈亏比</span><b id="bt-pl-ratio">--</b></div><div class="result-item"><span>平均持仓 / 交易</span><b id="bt-holding">--</b></div></div><div class="equity-legend"><span><i></i>策略权益</span><span><i class="benchmark"></i>Buy &amp; Hold</span></div><div id="equity-chart" class="equity-wrap"><div class="muted" style="display:grid;place-items:center;height:100%;font-size:12px">运行回测后显示权益曲线</div></div><div class="trade-table-wrap"><table class="trade-table"><thead><tr><th>日期</th><th>方向</th><th>价格</th><th>数量</th><th>费用</th></tr></thead><tbody id="trade-rows"></tbody></table></div></article>`;
+  $('#lab').append(resultPanel);
+
+  function resetReport(note = '已切换标的；运行回测后显示完整历史分析。') {
+    vantaLastBacktest = null;
+    resultPanel.hidden = true;
+    $('#lab-note').textContent = note;
+  }
+
+  function drawEquityCurve(curve) {
+    const root = $('#equity-chart');
+    if (!Array.isArray(curve) || curve.length < 2) {
+      root.innerHTML = '<div class="muted" style="display:grid;place-items:center;height:100%;font-size:12px">权益曲线数据不足</div>';
+      return;
+    }
+    root.innerHTML = '<canvas></canvas>';
+    const c = root.firstElementChild;
+    const [w, h, x] = canvasFit(c);
+    const pad = {l: 54, r: 16, t: 18, b: 26};
+    const strategy = curve.map(p => N(p.equity));
+    const benchmark = curve.map(p => N(p.benchmark_equity));
+    const values = [...strategy, ...benchmark].filter(Number.isFinite);
+    const lo = Math.min(...values), hi = Math.max(...values), range = hi - lo || 1;
+    const px = i => pad.l + i * (w - pad.l - pad.r) / (curve.length - 1);
+    const py = v => pad.t + (hi - v) / range * (h - pad.t - pad.b);
+    x.font = '10px ' + getComputedStyle(document.body).fontFamily;
+    for (let i = 0; i < 4; i++) { const y = pad.t + i * (h - pad.t - pad.b) / 3; x.strokeStyle = '#2a4058'; x.beginPath(); x.moveTo(pad.l, y); x.lineTo(w - pad.r, y); x.stroke(); x.fillStyle = '#91a6bc'; x.fillText(money(hi - range * i / 3), 2, y + 4); }
+    [[strategy, '#8ebeff'], [benchmark, '#ffc971']].forEach(([series, color]) => { x.strokeStyle = color; x.lineWidth = 1.8; x.beginPath(); series.forEach((v, i) => i ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v))); x.stroke(); });
+    x.fillStyle = '#91a6bc'; x.fillText(String(curve[0].trade_date || ''), pad.l, h - 7); const end = String(curve.at(-1).trade_date || ''), tw = x.measureText(end).width; x.fillText(end, w - pad.r - tw, h - 7);
+  }
+
+  function renderReport(j) {
+    const set = (id, value, className = '') => { const el = $('#' + id); el.textContent = value; el.className = className; };
+    set('bt-report-return', pct(N(j.total_return) * 100), cls(j.total_return));
+    set('bt-benchmark', pct(N(j.benchmark_return) * 100), cls(j.benchmark_return));
+    set('bt-excess', pct(N(j.excess_return) * 100), cls(j.excess_return));
+    set('bt-report-drawdown', pct(N(j.max_drawdown) * 100), 'down');
+    set('bt-annual', j.annual_return == null ? '--' : pct(N(j.annual_return) * 100), cls(j.annual_return));
+    set('bt-win-rate', j.win_rate == null ? '--' : pct(N(j.win_rate) * 100));
+    set('bt-pl-ratio', j.profit_loss_ratio == null ? '--' : N(j.profit_loss_ratio).toFixed(2));
+    set('bt-holding', j.average_holding_days == null ? `${N(j.trade_count)} 笔成交` : `${N(j.average_holding_days).toFixed(1)} 天 / ${N(j.trade_count)} 笔`);
+    $('#bt-source').textContent = `${j.symbol} · ${j.start_date} → ${j.end_date} · ${j.data_source || '未知数据源'}`;
+    $('#trade-rows').innerHTML = (j.trades || []).map(t => `<tr><td>${esc(t.trade_date)}</td><td class="${t.side === 'buy' ? 'up' : 'down'}">${t.side === 'buy' ? '买入' : '卖出'}</td><td>${fmt(t.price)}</td><td>${N(t.quantity)}</td><td>${money(t.fees)}</td></tr>`).join('') || '<tr><td class="empty-row" colspan="5">该区间没有产生均线交叉成交信号</td></tr>';
+    resultPanel.hidden = false;
+    drawEquityCurve(j.equity_curve);
+  }
+
+  async function openLabForStock(code) {
+    const stock = STOCKS.find(s => String(s.code) === String(code));
+    if (!stock) return toast('未找到这只推荐标的', true);
+    selected = stock;
+    $('#bar-symbol').value = stock.code;
+    $('#bt-capital').value = account.capital;
+    resetReport();
+    go('lab');
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await loadBars();
+  }
+
+  const originalCards = renderStockCards;
+  renderStockCards = function(root, items) {
+    originalCards(root, items);
+    $$(root + ' .card-action').forEach(action => {
+      const code = action.closest('[data-stock]')?.dataset.stock;
+      if (!code || action.querySelector('.lab-stock')) return;
+      const button = document.createElement('button');
+      button.className = 'button lab-stock'; button.dataset.code = code; button.textContent = '历史 K 线';
+      button.onclick = () => openLabForStock(code);
+      action.append(button);
+    });
+  };
+
+  const focusLab = $('#signals [data-go="lab"]');
+  if (focusLab) focusLab.onclick = () => openLabForStock(selected.code);
+  const previousSelectStock = selectStock;
+  selectStock = function(code) { previousSelectStock(code); };
+
+  loadBars = async function() {
+    const button = $('#load-bars');
+    try {
+      const symbol = $('#bar-symbol').value.trim(), start = $('#bar-start').value, end = $('#bar-end').value;
+      if (!/^\d{6}$/.test(symbol) || !start || !end) throw Error('填写 6 位股票代码和有效日期');
+      button.disabled = true; button.textContent = '加载中…';
+      const r = await fetch(`${api()}/api/stocks/${symbol}/daily?start=${start}&end=${end}`), j = await response(r);
+      if (!r.ok) throw Error(errorText(j, '行情加载失败'));
+      bars = j.bars || [];
+      if (!bars.length) throw Error('此区间没有可用交易日行情');
+      resetReport(`${bars.length} 个交易日 · ${j.data_source || '未知来源'}${j.warnings?.length ? ' · ' + j.warnings.join('；') : ''}`);
+      drawKline();
+      const first = N(bars[0].close), last = N(bars.at(-1).close);
+      $('#last-close').textContent = fmt(last); $('#period-change').textContent = pct((last / first - 1) * 100); $('#period-change').className = cls(last - first);
+      toast(`${symbol} 真实日线已载入`);
+    } catch (e) { toast(e.message, true); }
+    finally { button.disabled = false; button.textContent = '加载日线'; }
+  };
+
+  runBacktest = async function() {
+    const button = $('#run-backtest');
+    try {
+      if (!bars.length) throw Error('先加载真实日线');
+      const body = {symbol: $('#bar-symbol').value.trim(), start_date: $('#bar-start').value, end_date: $('#bar-end').value, strategy: 'ma_cross', parameters: {fast_period: N($('#fast').value), slow_period: N($('#slow').value)}, initial_cash: N($('#bt-capital').value), fees: {commission_rate: fees().commission, min_commission_cny: fees().min, stamp_duty_rate: fees().stamp, transfer_rate: fees().transfer, slippage_rate: .0002}};
+      if (body.parameters.fast_period >= body.parameters.slow_period) throw Error('快均线必须小于慢均线');
+      button.disabled = true; button.textContent = '运算中…';
+      const r = await fetch(api() + '/api/backtests', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}), j = await response(r);
+      if (!r.ok) throw Error(errorText(j, '回测失败'));
+      vantaLastBacktest = j;
+      $('#bt-return').textContent = pct(N(j.total_return) * 100); $('#bt-return').className = cls(j.total_return);
+      $('#bt-drawdown').textContent = pct(N(j.max_drawdown) * 100); $('#bt-drawdown').className = 'down';
+      $('#lab-note').textContent = `回测完成 · ${j.trade_count} 笔成交 · 最终权益 ${money(j.final_equity)} · ${j.data_source || '未知来源'}`;
+      renderReport(j); toast('历史回测已完成');
+    } catch (e) { toast(e.message, true); }
+    finally { button.disabled = false; button.textContent = '运行回测'; }
+  };
+  $('#load-bars').onclick = loadBars;
+  $('#run-backtest').onclick = runBacktest;
+  window.addEventListener('resize', () => { if (!resultPanel.hidden && vantaLastBacktest?.equity_curve) drawEquityCurve(vantaLastBacktest.equity_curve); });
+
+  let vantaLastBacktest = null;
+  renderHome(); renderSignals();
+  window.openLabForStock = openLabForStock;
+})();
 </script></body></html>

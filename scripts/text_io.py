@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from typing import Any
 # These markers mean that the original Chinese characters were already lost
 # during an earlier decode. They cannot be recovered reliably downstream.
 GARBLED_MARKERS = ("\ufffd", "锟斤拷", "ï¿½", "Ã", "Â")
+QUESTION_RUN = re.compile(r"\?{3,}")
 
 
 def decode_text(data: bytes, source: str = "输入") -> str:
@@ -68,7 +70,11 @@ def write_stdout_utf8(text: str) -> None:
 def _find_garbled(value: Any, path: str = "$", found: list[str] | None = None) -> list[str]:
     found = found if found is not None else []
     if isinstance(value, str):
-        if any(marker in value for marker in GARBLED_MARKERS):
+        # A single question mark can be valid punctuation, but a run of three
+        # or more is how Windows shell redirection previously destroyed the
+        # Chinese annotations used by the GUI. Stop before that loss reaches a
+        # rendered dashboard.
+        if any(marker in value for marker in GARBLED_MARKERS) or QUESTION_RUN.search(value):
             found.append(path)
     elif isinstance(value, dict):
         for key, item in value.items():

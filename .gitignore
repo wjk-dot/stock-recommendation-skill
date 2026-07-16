@@ -29,6 +29,12 @@ analysis_clean.json
 annotations.json
 profile.json
 recommendations.json
+# Timestamped local recommendation sessions (contain user profile and live data)
+analysis-*.json
+annotations-*.json
+profile-*.json
+recommendations-*.json
+dashboard-*.html
 
 # IDE
 .vscode/

@@ -37,5 +37,6 @@ try {
     Pop-Location
 }
 
-Write-Host "Quant dashboard: http://127.0.0.1:8765/templates/orbit-3d-web.html"
+Write-Host "VANTA template: http://127.0.0.1:8765/templates/orbit-3d-web.html"
+Write-Host "Rendered session: http://127.0.0.1:8765/app/dashboard.html"
 Write-Host "API health:      http://127.0.0.1:8765/api/health"

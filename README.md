@@ -149,7 +149,7 @@ uv run C:\path\to\a-stock-analysis\scripts\analyze.py `
   000001 600000 --json --minute
 ```
 
-Windows 下不要使用 PowerShell 的 `>` 保存上游输出。若需要保存 JSON，请使用 `capture_analysis.py`，否则可能出现中文乱码。
+Windows 下不要使用 PowerShell 的 `>` 保存上游输出。若需要保存 JSON，请使用 `capture_analysis.py`，否则可能出现中文乱码。打包器和渲染器会拒绝 `???`、`�`、`锟斤拷` 等不可恢复乱码，不会再把损坏文本静默写进页面。
 
 ### 3. 编写推荐标注
 
@@ -187,7 +187,7 @@ python scripts\render_gui.py `
   --output dashboard.html
 ```
 
-生成后的 `dashboard.html` 默认使用 **VANTA 亮色量化工作台**，包含机会池、资金流向、含成本模拟盘、涨跌预测记录、TradingView 风格 K 线和 MA 回测入口。该文件本身可离线查看推荐、模拟盘和预测记录；K 线、真实回测、市场资金流向需要 Docker 后端。
+生成后的 `dashboard.html` 默认使用 **VANTA 量化工作台**，包含机会池、资金流向、含成本模拟盘、涨跌预测记录、TradingView 风格 K 线和 MA 回测入口。该文件本身可离线查看推荐、模拟盘和预测记录；K 线、真实回测、市场资金流向需要 Docker 后端。
 
 双击文件即可打开，也可以使用本地静态服务器：
 
@@ -195,17 +195,25 @@ python scripts\render_gui.py `
 python -m http.server 8765 --directory .
 ```
 
-然后访问 <http://127.0.0.1:8765/dashboard.html>。
+Docker 已启动时，**推荐使用同源地址**打开本次页面：<http://127.0.0.1:8765/app/dashboard.html>。
+
+> 这是正式入口。`templates/workbench.html` 是第一代兼容页面，不会在正常 skill 调用中打开；不要把它作为本次推荐结果的入口。
 
 ## 量化工作台与 Docker
 
-启动 Docker 后，直接打开：
+启动 Docker 后，生成过 `dashboard.html` 时直接打开：
+
+```text
+http://127.0.0.1:8765/app/dashboard.html
+```
+
+仅需要检查空模板和 API 时，再打开：
 
 ```text
 http://127.0.0.1:8765/templates/orbit-3d-web.html
 ```
 
-这个地址是 VANTA 的“空数据/接口演示入口”：可测试真实日线、回测和资金流 API。要在其中展示某次 Codex 推荐结果，应使用上面的 `render_gui.py` 命令生成带数据的 `dashboard.html`。
+空模板地址是 VANTA 的“接口演示入口”：可测试真实日线、回测和资金流 API。要展示某次 Codex 推荐结果，应使用上面的 `render_gui.py` 生成带数据的 `dashboard.html`，并通过 `/app/dashboard.html` 打开。
 
 Windows 下推荐在项目根目录执行：
 

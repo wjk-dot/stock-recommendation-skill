@@ -21,6 +21,9 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./templates:/usr/share/nginx/html/templates:ro
+      # render_gui.py 生成的带本次推荐数据的 VANTA 页面通过 /app/ 提供。
+      # 这样页面和 /api/ 同源，K 线、回测与资金流接口不会被 file:// CORS 阻断。
+      - ./:/usr/share/nginx/html/app:ro
     depends_on:
       quant-backend:
         condition: service_healthy
